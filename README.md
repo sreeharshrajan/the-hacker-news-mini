@@ -60,7 +60,7 @@ HN Mini reimagines the Hacker News experience with modern web technologies, deli
 ## 📁 Project Structure
 
 ```bash
-The HN Mini/
+the-hacker-news-mini/
 ├── src/
 │   ├── app/                    # Next.js 15 App Router
 │   │   ├── (routes)/
@@ -103,8 +103,8 @@ The HN Mini/
 
 ```bash
 # Clone the repository
-git clone https://github.com/sreeharshrajans/The HN Mini.git
-cd The HN Mini
+git clone https://github.com/sreeharshrajans/the-hacker-news-mini.git
+cd the-hacker-news-mini
 
 # Install dependencies
 pnpm install
@@ -141,10 +141,10 @@ npx vercel
 
 ```bash
 # Build Docker image
-docker build -t The HN Mini .
+docker build -t the-hacker-news-mini .
 
 # Run container
-docker run -p 3000:3000 The HN Mini
+docker run -p 3000:3000 the-hacker-news-mini
 ```
 
 ### Static Export
@@ -186,7 +186,7 @@ Sreeharsh Rajan
 
 ## ⭐ Show Your Support
 
-If you find The HN Mini useful, please consider giving it a star ⭐ on GitHub. It helps others discover the project and motivates continued development!
+If you find the-hacker-news-mini useful, please consider giving it a star ⭐ on GitHub. It helps others discover the project and motivates continued development!
 
 <div align="center">
     <sub>Built with ❤️ by <a href="https://sreeharsh.dev">Sreeharsh Rajan</a></sub>
