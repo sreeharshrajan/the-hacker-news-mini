@@ -1,5 +1,4 @@
 import { fetchStory } from "@/lib/hn-api";
-import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Comment from "@/components/post/comment";
 import type { Metadata } from "next";
@@ -8,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
     ExternalLink,
     MessageSquare,
@@ -241,8 +239,8 @@ export default async function StoryPage({ params }: PageProps) {
             <main className="max-w-4xl mx-auto p-4 space-y-8 overflow-x-hidden">
                 {/* Story Header */}
                 <header className="space-y-4">
+                    {storyTypeBadge}
                     <div className="flex items-start gap-3">
-                        {storyTypeBadge}
                         <h1 className="text-2xl md:text-3xl font-bold leading-tight break-words">
                             {story.title}
                         </h1>
@@ -250,14 +248,6 @@ export default async function StoryPage({ params }: PageProps) {
 
                     {/* Story Metadata */}
                     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                            <User className="h-4 w-4" />
-                            <span className="font-medium">{story.by}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            <span>{formatTime(story.time)}</span>
-                        </div>
                         <PostMeta
                             score={story.score}
                             by={story.by}
@@ -265,12 +255,6 @@ export default async function StoryPage({ params }: PageProps) {
                             commentCount={story.descendants}
                             className="mt-2"
                         />
-                        {commentCount > 0 && (
-                            <div className="flex items-center gap-1">
-                                <MessageSquare className="h-4 w-4" />
-                                <span>{commentCount} comments</span>
-                            </div>
-                        )}
                     </div>
                 </header>
 
