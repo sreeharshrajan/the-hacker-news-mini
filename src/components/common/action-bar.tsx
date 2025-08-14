@@ -1,4 +1,3 @@
-// src/components/common/action-bar.tsx
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -18,14 +17,17 @@ type Props = {
   onSearch: (query: string) => void;
   onSort: (sortBy: SortType) => void;
   initialSort?: SortType;
+  initialSearch?: string; // Add this prop
 };
 
 export default function ActionBar({
   onSearch,
   onSort,
-  initialSort = "top"
+  initialSort = "top",
+  initialSearch = "" // Initialize with empty string
 }: Props) {
-  const [input, setInput] = useState("");
+  // Initialize with empty string to make it controlled from the start
+  const [input, setInput] = useState(initialSearch);
   const [sortValue, setSortValue] = useState<SortType>(initialSort);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -48,7 +50,11 @@ export default function ActionBar({
   if (!isMounted) {
     return (
       <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between py-4">
-        <Input className="max-w-sm" placeholder="Search stories..." />
+        <Input
+          className="max-w-sm"
+          placeholder="Search stories..."
+          defaultValue={initialSearch} // Use defaultValue for SSR
+        />
         <div className="w-[160px] h-10 bg-gray-100 rounded-md" />
       </div>
     );
@@ -59,7 +65,7 @@ export default function ActionBar({
       <Input
         type="text"
         placeholder="Search stories..."
-        value={input}
+        value={input} // Now properly controlled
         onChange={(e) => {
           const val = e.target.value;
           setInput(val);
@@ -77,17 +83,8 @@ export default function ActionBar({
             position="popper"
             side="bottom"
             align="end"
+            className="w-[var(--radix-select-trigger-width)]"
             sideOffset={4}
-            className="z-50"
-            style={{
-              width: 'var(--radix-select-trigger-width)',
-              // Prevent any default transforms that might cause jumps
-              transform: 'none !important',
-              // Ensure consistent positioning
-              position: 'relative',
-              top: '0',
-              left: '0'
-            }}
           >
             <SelectItem value="top">Top</SelectItem>
             <SelectItem value="new">Newest</SelectItem>

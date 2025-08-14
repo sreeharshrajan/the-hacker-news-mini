@@ -5,14 +5,12 @@ import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import PostMeta from "@/components/post/post-meta";
 import ActionBar, { SortType } from "@/components/common/action-bar";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Add useEffect
 import { useStoriesByType } from "@/hooks/useStoriesByType";
 import {
   Loader,
   Flame,
   MessageSquare,
-  User,
-  ArrowUp,
   AlertCircle,
   ExternalLink,
   MessageCircle
@@ -39,6 +37,8 @@ export default function HomePage() {
   const { data: stories = [], isLoading, error } = useStoriesByType(sortBy);
   const [searchQuery, setSearchQuery] = useState("");
 
+
+
   if (isLoading) {
     return (
       <div className="p-4 flex justify-center">
@@ -56,8 +56,10 @@ export default function HomePage() {
     );
   }
 
+  // Filter stories based on search query and sort type
   const filteredData = stories.filter((story) => {
-    const matchesSearch = story.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = searchQuery === "" ||
+      story.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = sortBy === "ask"
       ? story.title.toLowerCase().startsWith("ask hn:")
       : true;
@@ -73,7 +75,7 @@ export default function HomePage() {
       default:
         return b.score - a.score;
     }
-  });
+  });;
 
   return (
     <main className="p-4 max-w-2xl mx-auto space-y-4">
