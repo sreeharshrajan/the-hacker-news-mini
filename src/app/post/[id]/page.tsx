@@ -6,80 +6,19 @@ import PostMeta from "@/components/post/post-meta";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
     ExternalLink,
     MessageSquare,
     ArrowLeft,
-    Clock,
-    User,
-    RefreshCw,
-    AlertCircle
 } from "lucide-react";
 import Link from "next/link";
+import CommentSkeleton from "@/components/post/comment-skeleton";
+import StoryError from "@/components/post/post-error";
+import { FormattedText } from "@/components/ui/formatted-text";
 
 type PageProps = {
     params: { id: string };
 };
-
-// Loading skeleton for comments section
-function CommentsSkeleton() {
-    return (
-        <div className="space-y-6">
-            {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="space-y-3">
-                    {/* Comment header with collapse button */}
-                    <div className="flex items-center gap-2">
-                        <Skeleton className="h-6 w-6 rounded" />
-                        <Skeleton className="h-3 w-3 rounded-full" />
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-3 w-3 rounded-full" />
-                        <Skeleton className="h-4 w-12" />
-                        {Math.random() > 0.6 && (
-                            <Skeleton className="h-5 w-16 rounded-full" />
-                        )}
-                    </div>
-
-                    {/* Comment content */}
-                    <div className="pl-8 space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-11/12" />
-                        <Skeleton className="h-4 w-4/5" />
-                        {Math.random() > 0.7 && <Skeleton className="h-4 w-3/4" />}
-                    </div>
-
-                    {/* Comment actions */}
-                    <div className="pl-8 flex items-center gap-4">
-                        <Skeleton className="h-3 w-8" />
-                        <Skeleton className="h-3 w-6" />
-                        <Skeleton className="h-3 w-6" />
-                        {Math.random() > 0.5 && (
-                            <Skeleton className="h-3 w-12" />
-                        )}
-                    </div>
-                </div>
-            ))}
-
-            {/* Loading more indicator */}
-            <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                <span>Loading comments...</span>
-            </div>
-        </div>
-    );
-}
-
-// Utility function to format time
-function formatTime(timestamp: number): string {
-    const date = new Date(timestamp * 1000);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-
-    if (diffInHours < 1) return 'just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
-    return date.toLocaleDateString();
-}
 
 // Get story type badge
 function getStoryTypeBadge(story: any) {
@@ -94,58 +33,11 @@ function getStoryTypeBadge(story: any) {
     return <Badge variant="outline">Story</Badge>;
 }
 
-// Error component for story loading failures
-function StoryError({ storyId, error }: { storyId: string; error: string }) {
-    return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-            <div className="max-w-md w-full space-y-6">
-                <div className="text-center">
-                    <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                    <h1 className="text-2xl font-bold mb-2">Failed to Load Story</h1>
-                    <p className="text-muted-foreground mb-4">
-                        Story #{storyId} could not be loaded
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-6">
-                        {error}
-                    </p>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                    <Button
-                        onClick={() => window.location.reload()}
-                        className="gap-2"
-                    >
-                        <RefreshCw className="h-4 w-4" />
-                        Retry
-                    </Button>
-
-                    <Button variant="outline" asChild>
-                        <Link href="/">
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Stories
-                        </Link>
-                    </Button>
-
-                    <Button variant="ghost" asChild>
-                        <a
-                            href={`https://news.ycombinator.com/item?id=${storyId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="gap-2"
-                        >
-                            <ExternalLink className="h-4 w-4" />
-                            View on Hacker News
-                        </a>
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 export async function generateMetadata({
     params,
-}: PageProps): Promise<Metadata> {
+}: {
+    params: { id: string };
+}): Promise<Metadata> {
     try {
         // Validate story ID
         const storyId = Number(params.id);
@@ -265,10 +157,7 @@ export default async function StoryPage({ params }: PageProps) {
                     {/* Story Text (for Ask HN/Show HN posts) */}
                     {story.text && (
                         <article className="prose prose-gray dark:prose-invert max-w-none">
-                            <div
-                                className="leading-relaxed break-words overflow-wrap-anywhere"
-                                dangerouslySetInnerHTML={{ __html: story.text }}
-                            />
+                            <FormattedText text={story.text} />
                         </article>
                     )}
 
@@ -306,20 +195,24 @@ export default async function StoryPage({ params }: PageProps) {
                         <h2 className="text-xl font-semibold flex items-center gap-2">
                             <MessageSquare className="h-5 w-5" />
                             Comments
-                            {commentCount > 0 && (
-                                <Badge variant="secondary">{commentCount}</Badge>
-                            )}
+                            <Badge variant="secondary">
+                                {story.descendants || 0}
+                            </Badge>
                         </h2>
                     </div>
 
-                    {commentCount > 0 ? (
-                        <div className="space-y-6 overflow-x-hidden">
-                            <Suspense fallback={<CommentsSkeleton />}>
-                                <div className="space-y-6">
-                                    {story.kids.map((kidId: number) => (
-                                        <Comment key={kidId} id={kidId} level={0} />
-                                    ))}
-                                </div>
+                    {story.descendants ? (
+                        <div className="space-y-6">
+                            <Suspense fallback={<CommentSkeleton count={5} />}>
+                                {story.kids?.length ? (
+                                    story.kids.map((kidId: number) => (
+                                        <Comment key={kidId} id={kidId} />
+                                    ))
+                                ) : (
+                                    <div className="text-center py-6 text-muted-foreground">
+                                        Comments not loaded
+                                    </div>
+                                )}
                             </Suspense>
                         </div>
                     ) : (

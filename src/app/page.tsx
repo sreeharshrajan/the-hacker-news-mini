@@ -57,7 +57,7 @@ export default function HomePage() {
   }
 
   // Filter stories based on search query and sort type
-  const filteredData = stories.filter((story) => {
+  const filteredData = stories?.filter((story) => {
     const matchesSearch = searchQuery === "" ||
       story.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = sortBy === "ask"
