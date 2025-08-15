@@ -1,13 +1,13 @@
 // lib/hn-api.ts - Robust implementation with better error handling
 
-const BASE_URL = 'https://hacker-news.firebaseio.com/v0';
+const BASE_URL = "https://hacker-news.firebaseio.com/v0";
 const TIMEOUT = 10000; // 10 seconds timeout
 
 // Types
 export interface HNItem {
   id: number;
   deleted?: boolean;
-  type?: 'job' | 'story' | 'comment' | 'poll' | 'pollopt';
+  type?: "job" | "story" | "comment" | "poll" | "pollopt";
   by?: string;
   time?: number;
   text?: string;
@@ -23,7 +23,7 @@ export interface HNItem {
 }
 
 export interface Story extends HNItem {
-  type: 'story';
+  type: "story";
   title: string;
   score: number;
   by: string;
@@ -32,7 +32,7 @@ export interface Story extends HNItem {
 }
 
 export interface Comment extends HNItem {
-  type: 'comment';
+  type: "comment";
   by: string;
   time: number;
   parent: number;
@@ -40,10 +40,10 @@ export interface Comment extends HNItem {
 
 // Cache implementation
 class APICache {
-  private cache = new Map<string, { data: any; timestamp: number }>();
+  private cache = new Map<string, { data: T; timestamp: number }>();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-  get<T>(key: string): T | null {
+  get(key: string): T | null {
     const cached = this.cache.get(key);
     if (!cached) return null;
 
@@ -56,7 +56,7 @@ class APICache {
     return cached.data;
   }
 
-  set(key: string, data: any): void {
+  set(key: string, data: T): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -72,10 +72,13 @@ class APICache {
   }
 }
 
-const cache = new APICache();
+const cache = new APICache<unknown>();
 
 // Fetch with timeout and retry logic
-async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
 
@@ -84,8 +87,8 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
       ...options,
       signal: controller.signal,
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        Accept: "application/json",
+        "Content-Type": "application/json",
         ...options.headers,
       },
     });
@@ -99,62 +102,51 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
-    
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Request timed out after 10 seconds');
+
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Request timed out after 10 seconds");
     }
-    
+
     throw error;
   }
 }
 
 // Generic fetch with caching and retry
 async function fetchWithCacheAndRetry<T>(
-  url: string, 
-  cacheKey: string, 
-  maxRetries: number = 3
+  url: string,
+  cacheKey: string,
+  maxRetries = 3,
 ): Promise<T> {
-  // Check cache first
   const cached = cache.get<T>(cacheKey);
   if (cached !== null) {
-    console.log(`Cache hit for ${cacheKey}`);
     return cached;
   }
 
-  let lastError: Error;
-  
-  // Retry logic
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxRetries; ++attempt) {
     try {
-      console.log(`Fetching ${url} (attempt ${attempt}/${maxRetries})`);
-      
       const response = await fetchWithTimeout(url);
-      const data = await response.json();
-      
-      // Cache the result
+      const data = (await response.json()) as T;
       cache.set(cacheKey, data);
-      console.log(`Successfully fetched and cached ${cacheKey}`);
-      
       return data;
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown error');
-      console.error(`Attempt ${attempt} failed for ${url}:`, lastError.message);
-      
-      // Don't retry on certain errors
-      if (lastError.message.includes('404') || lastError.message.includes('400')) {
-        break;
-      }
-      
-      // Wait before retry (exponential backoff)
+      lastError = error;
+      const message =
+        (error instanceof Error ? error.message : String(error)) || "";
+      if (message.includes("404") || message.includes("400")) break;
       if (attempt < maxRetries) {
-        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-        console.log(`Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        const delay = Math.min(1000 * 2 ** (attempt - 1), 5000);
+        await new Promise((res) => setTimeout(res, delay));
       }
     }
   }
-  
-  throw new Error(`Failed to fetch after ${maxRetries} attempts: ${lastError!.message}`);
+
+  throw new Error(
+    `Failed to fetch after ${maxRetries} attempts: ${
+      lastError instanceof Error ? lastError.message : String(lastError)
+    }`,
+  );
 }
 
 // Fetch individual item (story, comment, etc.)
@@ -166,15 +158,15 @@ export async function fetchItem(id: number): Promise<HNItem | null> {
   try {
     const item = await fetchWithCacheAndRetry<HNItem | null>(
       `${BASE_URL}/item/${id}.json`,
-      `item_${id}`
+      `item_${id}`,
     );
-    
+
     // HN API returns null for non-existent items
     if (item === null) {
       console.log(`Item ${id} not found (API returned null)`);
       return null;
     }
-    
+
     return item;
   } catch (error) {
     console.error(`Failed to fetch item ${id}:`, error);
@@ -186,35 +178,35 @@ export async function fetchItem(id: number): Promise<HNItem | null> {
 export async function fetchStory(id: number): Promise<Story | null> {
   try {
     const item = await fetchItem(id);
-    
+
     if (!item) {
       console.log(`Story ${id} not found`);
       return null;
     }
-    
+
     // Validate that it's actually a story
-    if (item.type && item.type !== 'story') {
+    if (item.type && item.type !== "story") {
       console.warn(`Item ${id} is not a story (type: ${item.type}), skipping`);
       return null;
     }
-    
+
     // Validate required story fields
     if (!item.title) {
       console.warn(`Story ${id} is missing required title field, skipping`);
       return null;
     }
-    
+
     if (!item.by) {
       console.warn(`Story ${id} is missing required author field, skipping`);
       return null;
     }
-    
-    if (typeof item.score !== 'number') {
+
+    if (typeof item.score !== "number") {
       console.warn(`Story ${id} has invalid score, defaulting to 0`);
       item.score = 0;
     }
-    
-    if (typeof item.time !== 'number') {
+
+    if (typeof item.time !== "number") {
       console.warn(`Story ${id} is missing required time field, skipping`);
       return null;
     }
@@ -230,35 +222,35 @@ export async function fetchStory(id: number): Promise<Story | null> {
 export async function fetchComment(id: number): Promise<Comment | null> {
   try {
     const item = await fetchItem(id);
-    
+
     if (!item) {
       return null;
     }
-    
+
     // Handle deleted/dead comments
     if (item.deleted || item.dead) {
       console.log(`Comment ${id} is deleted or dead`);
       return {
         id: item.id,
-        by: '[deleted]',
+        by: "[deleted]",
         time: item.time || 0,
         parent: item.parent || 0,
-        type: 'comment',
+        type: "comment",
         deleted: item.deleted,
         dead: item.dead,
       } as Comment;
     }
-    
+
     // Validate comment fields
     if (!item.by) {
       console.warn(`Comment ${id} missing author, using fallback`);
-      item.by = '[unknown]';
+      item.by = "[unknown]";
     }
-    
+
     if (!item.text && !item.deleted && !item.dead) {
       console.warn(`Comment ${id} missing text content`);
     }
-    
+
     return item as Comment;
   } catch (error) {
     console.error(`Failed to fetch comment ${id}:`, error);
@@ -271,16 +263,16 @@ export async function fetchTopStories(): Promise<number[]> {
   try {
     const stories = await fetchWithCacheAndRetry<number[]>(
       `${BASE_URL}/topstories.json`,
-      'topstories'
+      "topstories",
     );
-    
+
     if (!Array.isArray(stories)) {
-      throw new Error('Invalid response format for top stories');
+      throw new Error("Invalid response format for top stories");
     }
-    
-    return stories.filter(id => typeof id === 'number' && id > 0);
+
+    return stories.filter((id) => typeof id === "number" && id > 0);
   } catch (error) {
-    console.error('Failed to fetch top stories:', error);
+    console.error("Failed to fetch top stories:", error);
     throw error;
   }
 }
@@ -290,16 +282,16 @@ export async function fetchNewStories(): Promise<number[]> {
   try {
     const stories = await fetchWithCacheAndRetry<number[]>(
       `${BASE_URL}/newstories.json`,
-      'newstories'
+      "newstories",
     );
-    
+
     if (!Array.isArray(stories)) {
-      throw new Error('Invalid response format for new stories');
+      throw new Error("Invalid response format for new stories");
     }
-    
-    return stories.filter(id => typeof id === 'number' && id > 0);
+
+    return stories.filter((id) => typeof id === "number" && id > 0);
   } catch (error) {
-    console.error('Failed to fetch new stories:', error);
+    console.error("Failed to fetch new stories:", error);
     throw error;
   }
 }
@@ -309,16 +301,16 @@ export async function fetchAskStories(): Promise<number[]> {
   try {
     const stories = await fetchWithCacheAndRetry<number[]>(
       `${BASE_URL}/askstories.json`,
-      'askstories'
+      "askstories",
     );
-    
+
     if (!Array.isArray(stories)) {
-      throw new Error('Invalid response format for ask stories');
+      throw new Error("Invalid response format for ask stories");
     }
-    
-    return stories.filter(id => typeof id === 'number' && id > 0);
+
+    return stories.filter((id) => typeof id === "number" && id > 0);
   } catch (error) {
-    console.error('Failed to fetch ask stories:', error);
+    console.error("Failed to fetch ask stories:", error);
     throw error;
   }
 }
@@ -328,16 +320,16 @@ export async function fetchShowStories(): Promise<number[]> {
   try {
     const stories = await fetchWithCacheAndRetry<number[]>(
       `${BASE_URL}/showstories.json`,
-      'showstories'
+      "showstories",
     );
-    
+
     if (!Array.isArray(stories)) {
-      throw new Error('Invalid response format for show stories');
+      throw new Error("Invalid response format for show stories");
     }
-    
-    return stories.filter(id => typeof id === 'number' && id > 0);
+
+    return stories.filter((id) => typeof id === "number" && id > 0);
   } catch (error) {
-    console.error('Failed to fetch show stories:', error);
+    console.error("Failed to fetch show stories:", error);
     throw error;
   }
 }
@@ -347,64 +339,67 @@ export async function fetchJobStories(): Promise<number[]> {
   try {
     const stories = await fetchWithCacheAndRetry<number[]>(
       `${BASE_URL}/jobstories.json`,
-      'jobstories'
+      "jobstories",
     );
-    
+
     if (!Array.isArray(stories)) {
-      throw new Error('Invalid response format for job stories');
+      throw new Error("Invalid response format for job stories");
     }
-    
-    return stories.filter(id => typeof id === 'number' && id > 0);
+
+    return stories.filter((id) => typeof id === "number" && id > 0);
   } catch (error) {
-    console.error('Failed to fetch job stories:', error);
+    console.error("Failed to fetch job stories:", error);
     throw error;
   }
 }
 
 // Get stories by category with validation
 export async function getStoriesByCategory(
-  category: 'top' | 'new' | 'ask' | 'show' | 'jobs',
+  category: "top" | "new" | "ask" | "show" | "jobs",
   page: number = 0,
-  limit: number = 30
+  limit: number = 30,
 ): Promise<Story[]> {
   try {
-    if (page < 0) throw new Error('Page number must be non-negative');
-    if (limit <= 0 || limit > 100) throw new Error('Limit must be between 1 and 100');
-    
+    if (page < 0) throw new Error("Page number must be non-negative");
+    if (limit <= 0 || limit > 100)
+      throw new Error("Limit must be between 1 and 100");
+
     let storyIds: number[] = [];
-    
+
     switch (category) {
-      case 'top':
+      case "top":
         storyIds = await fetchTopStories();
         break;
-      case 'new':
+      case "new":
         storyIds = await fetchNewStories();
         break;
-      case 'ask':
+      case "ask":
         storyIds = await fetchAskStories();
         break;
-      case 'show':
+      case "show":
         storyIds = await fetchShowStories();
         break;
-      case 'jobs':
+      case "jobs":
         storyIds = await fetchJobStories();
         break;
       default:
         throw new Error(`Invalid category: ${category}`);
     }
-    
+
     // Paginate
     const start = page * limit;
     const end = start + limit;
     const pageIds = storyIds.slice(start, end);
-    
+
     if (pageIds.length === 0) {
       console.log(`No more stories for page ${page} in category ${category}`);
       return [];
     }
-    
-    console.log(`Fetching ${pageIds.length} stories for page ${page} in category ${category}`);
-    
+
+    console.log(
+      `Fetching ${pageIds.length} stories for page ${page} in category ${category}`,
+    );
+
     // Fetch stories in parallel with error handling
     const storyPromises = pageIds.map(async (id) => {
       try {
@@ -414,11 +409,15 @@ export async function getStoriesByCategory(
         return null; // Continue with other stories
       }
     });
-    
+
     const stories = await Promise.all(storyPromises);
-    const validStories = stories.filter((story): story is Story => story !== null);
-    
-    console.log(`Successfully loaded ${validStories.length}/${pageIds.length} stories`);
+    const validStories = stories.filter(
+      (story): story is Story => story !== null,
+    );
+
+    console.log(
+      `Successfully loaded ${validStories.length}/${pageIds.length} stories`,
+    );
     return validStories;
   } catch (error) {
     console.error(`Failed to get stories for category ${category}:`, error);
@@ -429,9 +428,9 @@ export async function getStoriesByCategory(
 // Utility functions
 export function getDomain(url: string): string {
   try {
-    return new URL(url).hostname.replace('www.', '');
+    return new URL(url).hostname.replace("www.", "");
   } catch {
-    return '';
+    return "";
   }
 }
 
@@ -445,24 +444,24 @@ export function formatScore(score: number): string {
 export function getTimeAgo(timestamp: number): string {
   const now = Date.now();
   const diffInSeconds = Math.floor((now - timestamp * 1000) / 1000);
-  
-  if (diffInSeconds < 60) return 'just now';
-  
+
+  if (diffInSeconds < 60) return "just now";
+
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) return `${diffInHours}h ago`;
-  
+
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays}d ago`;
-  
+
   const diffInWeeks = Math.floor(diffInDays / 7);
   if (diffInWeeks < 4) return `${diffInWeeks}w ago`;
-  
+
   const diffInMonths = Math.floor(diffInDays / 30);
   if (diffInMonths < 12) return `${diffInMonths}mo ago`;
-  
+
   const diffInYears = Math.floor(diffInDays / 365);
   return `${diffInYears}y ago`;
 }
@@ -470,7 +469,7 @@ export function getTimeAgo(timestamp: number): string {
 // Cache management utilities
 export function clearCache(): void {
   cache.clear();
-  console.log('API cache cleared');
+  console.log("API cache cleared");
 }
 
 export function getCacheStats(): { size: number } {
