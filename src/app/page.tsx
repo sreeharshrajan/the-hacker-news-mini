@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import PostMeta from "@/components/post/post-meta";
 import ActionBar, { SortType } from "@/components/common/action-bar";
-import { useState, useEffect } from "react"; // Add useEffect
+import { useState } from "react";
 import { useStoriesByType } from "@/hooks/useStoriesByType";
 import {
   Loader,
@@ -13,7 +13,6 @@ import {
   MessageSquare,
   AlertCircle,
   ExternalLink,
-  MessageCircle
 } from "lucide-react";
 
 // Helper function to get display name for sort type
@@ -37,8 +36,6 @@ export default function HomePage() {
   const { data: stories = [], isLoading, error } = useStoriesByType(sortBy);
   const [searchQuery, setSearchQuery] = useState("");
 
-
-
   if (isLoading) {
     return (
       <div className="p-4 flex justify-center">
@@ -58,11 +55,11 @@ export default function HomePage() {
 
   // Filter stories based on search query and sort type
   const filteredData = stories?.filter((story) => {
-    const matchesSearch = searchQuery === "" ||
+    const matchesSearch =
+      searchQuery === "" ||
       story.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = sortBy === "ask"
-      ? story.title.toLowerCase().startsWith("ask hn:")
-      : true;
+    const matchesType =
+      sortBy === "ask" ? story.title.toLowerCase().startsWith("ask hn:") : true;
     return matchesSearch && matchesType;
   });
 
@@ -75,7 +72,7 @@ export default function HomePage() {
       default:
         return b.score - a.score;
     }
-  });;
+  });
 
   return (
     <main className="p-4 max-w-2xl mx-auto space-y-4">
@@ -116,12 +113,14 @@ export default function HomePage() {
                   href={story.url ?? `/post/${story.id}`}
                   target={story.url ? "_blank" : "_self"}
                   rel="noopener noreferrer"
-                  className={`flex items-start gap-1 ${!story.url ? 'text-orange-500 hover:text-orange-600' : 'hover:underline'}`}
+                  className={`flex items-start gap-1 ${!story.url ? "text-orange-500 hover:text-orange-600" : "hover:underline"}`}
                 >
                   <h2 className="text-lg font-semibold flex-1">
                     {story.title}
                   </h2>
-                  {story.url && <ExternalLink className="h-4 w-4 text-gray-400 mt-1" />}
+                  {story.url && (
+                    <ExternalLink className="h-4 w-4 text-gray-400 mt-1" />
+                  )}
                 </a>
                 <PostMeta
                   score={story.score}

@@ -24,7 +24,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "prepare": "husky && husky install",
+    "lint": "eslint . --ext .ts,.tsx --fix",
+    "pre-commit": "lint-staged",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",
@@ -46,6 +49,8 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^24.2.1",
@@ -54,7 +59,10 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^9.33.0",
     "eslint-config-next": "15.4.6",
+    "husky": "^8.0.0",
+    "lint-staged": "^16.1.5",
     "postcss": "^8.5.6",
+    "prettier": "^3.6.2",
     "tailwindcss": "^4.1.11",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5.9.2"
@@ -63,5 +71,11 @@
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }
